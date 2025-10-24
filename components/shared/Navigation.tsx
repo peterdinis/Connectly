@@ -27,7 +27,7 @@ const Navigation: FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     className="hidden md:flex items-center gap-4"
                 >
-                    <Link href="/login">
+                    <Link href="/api/auth/login">
                         <Button variant="ghost">Login</Button>
                     </Link>
                     <Link href="/register">

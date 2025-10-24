@@ -12,6 +12,7 @@
     "migrate:apply": "npx drizzle-kit migrate"
   },
   "dependencies": {
+    "@auth0/nextjs-auth0": "^4.11.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.4.1",
