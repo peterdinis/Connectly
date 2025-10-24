@@ -22,7 +22,6 @@ const AnalyticsWrapper: FC = () => {
   const [isLoading, setIsLoading] = useState(true)
 
   const loadAnalytics = () => {
-    setSummary(data)
     setIsLoading(false)
   }
 
