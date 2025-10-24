@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC } from 'react';
 
 const Footer: FC = () => {
     return (
@@ -7,7 +7,7 @@ const Footer: FC = () => {
                 <p>&copy; 2025 LinkTree Clone. All rights reserved.</p>
             </div>
         </footer>
-    )
-}
+    );
+};
 
-export default Footer
+export default Footer;

@@ -1,23 +1,23 @@
-"use client"
+'use client';
 
-import Navigation from "@/components/shared/Navigation"
-import Footer from "@/components/shared/Footer"
-import GetStartedSection from "@/components/home/GetStartedSection"
-import FeaturesSection from "@/components/home/FeaturesSection"
-import HomeSection from "@/components/home/HomeSection"
+import Navigation from '@/components/shared/Navigation';
+import Footer from '@/components/shared/Footer';
+import GetStartedSection from '@/components/home/GetStartedSection';
+import FeaturesSection from '@/components/home/FeaturesSection';
+import HomeSection from '@/components/home/HomeSection';
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-linear-to-br from-background via-background to-muted">
-      <Navigation />
+    return (
+        <div className="min-h-screen bg-linear-to-br from-background via-background to-muted">
+            <Navigation />
 
-      <HomeSection />
+            <HomeSection />
 
-      <FeaturesSection />
+            <FeaturesSection />
 
-      <GetStartedSection />
+            <GetStartedSection />
 
-      <Footer />
-    </div>
-  )
+            <Footer />
+        </div>
+    );
 }

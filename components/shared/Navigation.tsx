@@ -1,14 +1,11 @@
-"use client"
+'use client';
 
-import { FC, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { LinkIcon, Menu, X } from "lucide-react";
-import { Button } from "../ui/button";
-import {
-    RegisterLink,
-    LoginLink,
-} from "@kinde-oss/kinde-auth-nextjs/server";
-import { ModeToggle } from "./ModeToggle";
+import { FC, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LinkIcon, Menu, X } from 'lucide-react';
+import { Button } from '../ui/button';
+import { RegisterLink, LoginLink } from '@kinde-oss/kinde-auth-nextjs/server';
+import { ModeToggle } from './ModeToggle';
 
 const Navigation: FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -50,13 +47,17 @@ const Navigation: FC = () => {
                 {isOpen && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
+                        animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         className="md:hidden bg-background overflow-hidden"
                     >
                         <div className="flex flex-col px-4 py-2 gap-2">
                             <LoginLink>
-                                <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full"
+                                    onClick={() => setIsOpen(false)}
+                                >
                                     Login
                                 </Button>
                             </LoginLink>
@@ -72,6 +73,6 @@ const Navigation: FC = () => {
             </AnimatePresence>
         </nav>
     );
-}
+};
 
 export default Navigation;
