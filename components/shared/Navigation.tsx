@@ -8,6 +8,7 @@ import {
     RegisterLink,
     LoginLink,
 } from "@kinde-oss/kinde-auth-nextjs/server";
+import { ModeToggle } from "./ModeToggle";
 
 const Navigation: FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +24,6 @@ const Navigation: FC = () => {
                     <LinkIcon className="w-6 h-6 text-primary" />
                     <span className="font-bold text-xl">Connectly</span>
                 </motion.div>
-
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -35,6 +35,8 @@ const Navigation: FC = () => {
                     <RegisterLink>
                         <Button>Get Started</Button>
                     </RegisterLink>
+
+                    <ModeToggle />
                 </motion.div>
 
                 <div className="md:hidden">
@@ -63,6 +65,7 @@ const Navigation: FC = () => {
                                     Get Started
                                 </Button>
                             </RegisterLink>
+                            <ModeToggle />
                         </div>
                     </motion.div>
                 )}

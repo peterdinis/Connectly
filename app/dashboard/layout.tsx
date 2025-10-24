@@ -3,6 +3,7 @@
 import type React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
+import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar"
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,7 @@ export default function DashboardLayout({
   return (
     <section>
       <div className="flex h-screen overflow-hidden">
-        SIDEBAR
+        <DashboardSidebar />
         <AnimatePresence mode="wait">
           <motion.main
             key={pathname}
