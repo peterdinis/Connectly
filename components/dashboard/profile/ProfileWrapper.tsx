@@ -1,24 +1,26 @@
-"use client"
+'use client';
 
-import { FC, useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { ModeToggle } from "@/components/shared/ModeToggle"
+import { FC, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { ModeToggle } from '@/components/shared/ModeToggle';
+import { ProfileHeader } from './ProfileHeader';
+import { LinkCard } from '../links/LinkCard';
 
 const ProfileWrapper: FC = () => {
-    const [links, setLinks] = useState<any[]>([])
-    const [profile, setProfile] = useState<any>({ name: "", bio: "" })
+    const [links, setLinks] = useState<any[]>([]);
+    const [profile, setProfile] = useState<any>({ name: '', bio: '' });
     const [design, setDesign] = useState<any>({
-        theme: "default",
-        buttonStyle: "rounded",
-        backgroundStyle: "gradient",
-        fontStyle: "sans",
-        cardAnimation: "slide",
-    })
-    const [isLoading, setIsLoading] = useState(true)
-    const router = useRouter()
+        theme: 'default',
+        buttonStyle: 'rounded',
+        backgroundStyle: 'gradient',
+        fontStyle: 'sans',
+        cardAnimation: 'slide',
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
     return (
         <div className={`min-h-screen`}>
@@ -31,7 +33,12 @@ const ProfileWrapper: FC = () => {
                 >
                     <ModeToggle />
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button variant="outline" size="sm" onClick={() => router.push("/dashboard")} className="gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/dashboard')}
+                            className="gap-2"
+                        >
                             <Settings className="w-4 h-4" />
                             Dashboard
                         </Button>
@@ -39,7 +46,7 @@ const ProfileWrapper: FC = () => {
                 </motion.div>
 
                 <div className="space-y-8">
-                    TODO PROFILE HEADER
+                    <ProfileHeader profile={profile} design={design} />
 
                     <div className="space-y-3">
                         {links.length === 0 ? (
@@ -49,18 +56,20 @@ const ProfileWrapper: FC = () => {
                                 transition={{ delay: 0.5 }}
                                 className="text-center py-12"
                             >
-                                TODO LINKS
+                                <p className={' dark:text-white text-black'}>
+                                    No links yet. Go to dashboard to add some!
+                                </p>
                             </motion.div>
                         ) : (
-                            <>
-                                TODO LINK CARD</>
+                            links.map((link, index) => (
+                                <LinkCard key={link.id} link={link} design={design} index={index} />
+                            ))
                         )}
                     </div>
                 </div>
             </div>
         </div>
-    )
-}
-
+    );
+};
 
 export default ProfileWrapper;

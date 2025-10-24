@@ -1,8 +1,8 @@
-import DesignWrapper from "@/components/dashboard/design/DesignWrapper";
-import { NextPage } from "next";
+import DesignWrapper from '@/components/dashboard/design/DesignWrapper';
+import { NextPage } from 'next';
 
 const DashboardDesignPage: NextPage = () => {
-    return <DesignWrapper />
-}
+    return <DesignWrapper />;
+};
 
 export default DashboardDesignPage;
