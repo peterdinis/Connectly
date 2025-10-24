@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,20 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { EmojiPicker } from '@/components/shared/EmojiPicker';
+import { useToast } from '@/hooks/useToast';
+import { Link } from '@/types/ApplicationTypes';
 
 const LinksWrapper: FC = () => {
-    const [links, setLinks] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [links, setLinks] = useState<Link[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
 
     const addLink = () => {
-        const newLink = {
+        const newLink: Link = {
             id: Date.now().toString(),
             title: 'New Link',
             url: 'https://example.com',
@@ -24,9 +31,13 @@ const LinksWrapper: FC = () => {
         };
         const updatedLinks = [...links, newLink];
         setLinks(updatedLinks);
+        toast({
+            title: 'Link created',
+            description: 'Your new link has been added.',
+        });
     };
 
-    const updateLink = (id: string, updates: any) => {
+    const updateLink = (id: string, updates: Partial<Link>) => {
         const updatedLinks = links.map((link) => (link.id === id ? { ...link, ...updates } : link));
         setLinks(updatedLinks);
     };
@@ -34,9 +45,13 @@ const LinksWrapper: FC = () => {
     const deleteLink = (id: string) => {
         const updatedLinks = links.filter((link) => link.id !== id);
         setLinks(updatedLinks);
+        toast({
+            title: 'Link deleted',
+            description: 'The link has been removed.',
+        });
     };
 
-    const handleReorder = (newLinks: any[]) => {
+    const handleReorder = (newLinks: Link[]) => {
         const reorderedLinks = newLinks.map((link, idx) => ({
             ...link,
             order: idx,
