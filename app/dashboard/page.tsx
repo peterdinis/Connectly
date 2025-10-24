@@ -1,13 +1,8 @@
-"use client"
-
-import { useKindeAuth } from "@kinde-oss/kinde-auth-nextjs";
+import DashboardWrapper from "@/components/dashboard/DashboardWrapper";
 import { NextPage } from "next";
 
 const DashboardPage: NextPage = () => {
-    const {user} = useKindeAuth()
-    return (
-        <>{user}</>
-    )
+    return <DashboardWrapper />
 }
 
 export default DashboardPage;
