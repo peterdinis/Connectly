@@ -12,12 +12,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <section>
             <div className="flex h-screen overflow-hidden">
                 <DashboardSidebar />
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                     <motion.main
-                        key={pathname}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
                         className="flex-1 overflow-y-auto"
                     >
