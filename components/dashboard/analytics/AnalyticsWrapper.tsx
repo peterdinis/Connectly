@@ -5,9 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Eye, MousePointerClick, TrendingUp, BarChart3, Trash2, Activity, Clock, Target } from "lucide-react"
 import { motion } from "framer-motion"
+import { AnalyticsSummary } from "@/types/ApplicationTypes"
+import { useToast } from "@/hooks/useToast"
 
 const AnalyticsWrapper: FC = () => {
-  const [summary, setSummary] = useState<any>({
+  
+  const [summary, setSummary] = useState<AnalyticsSummary>({
     totalViews: 0,
     totalClicks: 0,
     clickThroughRate: 0,
@@ -20,6 +23,7 @@ const AnalyticsWrapper: FC = () => {
     linkPerformanceComparison: [],
   })
   const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
   const loadAnalytics = () => {
     setIsLoading(false)
@@ -32,6 +36,10 @@ const AnalyticsWrapper: FC = () => {
   const handleClearAnalytics = () => {
     if (confirm("Are you sure you want to clear all analytics data? This cannot be undone.")) {
       loadAnalytics()
+      toast({
+        title: "Analytics cleared",
+        description: "All analytics data has been removed.",
+      })
     }
   }
 
@@ -43,6 +51,11 @@ const AnalyticsWrapper: FC = () => {
     link.href = url
     link.download = `analytics-${new Date().toISOString().split("T")[0]}.json`
     link.click()
+    
+    toast({
+      title: "Data exported",
+      description: "Analytics data has been downloaded.",
+    })
   }
 
   if (isLoading) {
