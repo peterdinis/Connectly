@@ -8,7 +8,7 @@ import HomeSection from "@/components/home/HomeSection"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-muted">
       <Navigation />
 
       <HomeSection />

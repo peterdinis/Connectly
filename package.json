@@ -6,12 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:push": "npx drizzle-kit push",
+    "migrate:generate": "npx drizzle-kit generate",
+    "migrate:apply": "npx drizzle-kit migrate"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.5",
+    "drizzle-orm": "^0.44.7",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
     "next": "16.0.0",

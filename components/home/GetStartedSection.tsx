@@ -12,7 +12,7 @@ const GetStartedSection: FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                className="max-w-3xl mx-auto text-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-12 border"
+                className="max-w-3xl mx-auto text-center bg-linear-to-br from-primary/10 to-primary/5 rounded-2xl p-12 border"
             >
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Get Started?</h2>
                 <p className="text-lg text-muted-foreground mb-8">Join thousands of creators sharing their links in style</p>
