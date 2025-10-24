@@ -2,9 +2,12 @@
 
 import { FC, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import { LinkIcon, Menu, X } from "lucide-react";
 import { Button } from "../ui/button";
+import {
+    RegisterLink,
+    LoginLink,
+} from "@kinde-oss/kinde-auth-nextjs/server";
 
 const Navigation: FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -21,21 +24,19 @@ const Navigation: FC = () => {
                     <span className="font-bold text-xl">Connectly</span>
                 </motion.div>
 
-                {/* Desktop Menu */}
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="hidden md:flex items-center gap-4"
                 >
-                    <Link href="/login">
+                    <LoginLink>
                         <Button variant="ghost">Login</Button>
-                    </Link>
-                    <Link href="/register">
+                    </LoginLink>
+                    <RegisterLink>
                         <Button>Get Started</Button>
-                    </Link>
+                    </RegisterLink>
                 </motion.div>
 
-                {/* Mobile Hamburger */}
                 <div className="md:hidden">
                     <button onClick={() => setIsOpen(!isOpen)}>
                         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -43,7 +44,6 @@ const Navigation: FC = () => {
                 </div>
             </div>
 
-            {/* Mobile Menu Drawer */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -53,16 +53,16 @@ const Navigation: FC = () => {
                         className="md:hidden bg-background overflow-hidden"
                     >
                         <div className="flex flex-col px-4 py-2 gap-2">
-                            <Link href="/login">
+                            <LoginLink>
                                 <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
                                     Login
                                 </Button>
-                            </Link>
-                            <Link href="/register">
+                            </LoginLink>
+                            <RegisterLink>
                                 <Button className="w-full" onClick={() => setIsOpen(false)}>
                                     Get Started
                                 </Button>
-                            </Link>
+                            </RegisterLink>
                         </div>
                     </motion.div>
                 )}
