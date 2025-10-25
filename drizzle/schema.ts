@@ -15,9 +15,7 @@ export const users = sqliteTable('users', {
 // ========== PAGES ==========
 export const pages = sqliteTable('pages', {
     id: text('id').primaryKey(),
-    userId: text('user_id')
-        .notNull()
-        .references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id'),
     title: text('title').notNull(),
     slug: text('slug').unique().notNull(),
     description: text('description'),

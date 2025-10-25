@@ -12,15 +12,13 @@ import { EmojiPicker } from '@/components/shared/EmojiPicker';
 import { useToast } from '@/hooks/useToast';
 import { Link, Page } from '@/types/ApplicationTypes';
 import { nanoid } from 'nanoid';
-import useSWR, { mutate } from 'swr';
 import { useKindeBrowserClient, LoginLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const LinksWrapper: FC = () => {
     const [links, setLinks] = useState<Link[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState<Page | null>(null);
+    const [isCreatingPage, setIsCreatingPage] = useState(false);
     const { toast } = useToast();
     
     // Kinde authentication
@@ -31,79 +29,51 @@ const LinksWrapper: FC = () => {
         getToken 
     } = useKindeBrowserClient();
 
-    // Fetch user's pages
-    const { data: pagesData, error: pagesError } = useSWR(
-        isAuthenticated && user ? `/api/pages?userId=${user.id}` : null,
-        fetcher
-    );
-
-    // Create or get default page
+    // Načítať page a linky iba ak používateľ existuje
     useEffect(() => {
-        const initializePage = async () => {
-            if (!isAuthenticated || !user || !pagesData) return;
+        const loadUserData = async () => {
+            if (!isAuthenticated || !user) {
+                return;
+            }
 
             setIsLoading(true);
 
             try {
-                let page = pagesData.data?.[0];
-
-                // If no page exists, create one
-                if (!page) {
-                    const token = await getToken();
-                    const newPageData = {
-                        userId: user.id,
-                        title: `${user.given_name || user.family_name || user.email}'s Links`,
-                        slug: nanoid(10),
-                        description: 'My links page',
-                        isPublished: true,
-                    };
-
-                    const response = await fetch('/api/pages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify(newPageData),
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        page = result.page;
-                        
-                        // Refresh pages data
-                        mutate(`/api/pages?userId=${user.id}`);
-                        
-                        toast({
-                            title: 'Page created',
-                            description: 'Your page has been created successfully.',
-                        });
-                    } else {
-                        throw new Error('Failed to create page');
-                    }
-                }
-
-                setCurrentPage(page);
+                const token = await getToken();
                 
-                // Load links for this page
-                if (page) {
-                    const token = await getToken();
-                    const linksResponse = await fetch(`/api/links?pageId=${page.id}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                // Načítať pages používateľa
+                const pagesResponse = await fetch(`/api/pages?userId=${user.id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { 'Authorization': `Bearer ${token}` })
+                    }
+                });
+
+                if (pagesResponse.ok) {
+                    const pagesData = await pagesResponse.json();
+                    const page = pagesData.data?.[0] || null;
                     
-                    if (linksResponse.ok) {
-                        const linksData = await linksResponse.json();
-                        setLinks(linksData.data || []);
+                    if (page) {
+                        setCurrentPage(page);
+                        
+                        // Načítať linky pre túto stránku
+                        const linksResponse = await fetch(`/api/links?pageId=${page.id}`, {
+                            headers: {
+                                ...(token && { 'Authorization': `Bearer ${token}` })
+                            }
+                        });
+                        
+                        if (linksResponse.ok) {
+                            const linksData = await linksResponse.json();
+                            setLinks(linksData.data || []);
+                        }
                     }
                 }
             } catch (error) {
-                console.error('Error initializing page:', error);
+                console.error('Error loading user data:', error);
                 toast({
                     title: 'Error',
-                    description: 'Failed to initialize page',
+                    description: 'Failed to load your data',
                     variant: 'destructive',
                 });
             } finally {
@@ -111,8 +81,59 @@ const LinksWrapper: FC = () => {
             }
         };
 
-        initializePage();
-    }, [isAuthenticated, user, pagesData, toast, getToken]);
+        if (isAuthenticated && user) {
+            loadUserData();
+        }
+    }, [isAuthenticated, user, toast, getToken]);
+
+    const createPage = async () => {
+        if (!user) return;
+
+        setIsCreatingPage(true);
+
+        try {
+            const token = await getToken();
+            const newPageData = {
+                userId: user.id,
+                title: `${user.given_name || user.family_name || user.email}'s Links`,
+                slug: `page-${nanoid(8)}`,
+                description: 'My links page',
+                isPublished: true,
+            };
+
+            const response = await fetch('/api/pages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify(newPageData),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to create page: ${response.status} ${errorText}`);
+            }
+
+            const result = await response.json();
+            setCurrentPage(result.page);
+            
+            toast({
+                title: 'Page created',
+                description: 'Your page has been created successfully.',
+            });
+        } catch (error) {
+            console.error('Error creating page:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create page';
+            toast({
+                title: 'Error',
+                description: errorMessage,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsCreatingPage(false);
+        }
+    };
 
     const addLink = async () => {
         if (!currentPage || !user) return;
@@ -132,7 +153,7 @@ const LinksWrapper: FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    ...(token && { 'Authorization': `Bearer ${token}` })
                 },
                 body: JSON.stringify(newLink),
             });
@@ -147,7 +168,7 @@ const LinksWrapper: FC = () => {
                     description: 'Your new link has been added.',
                 });
             } else {
-                throw new Error('Failed to create link');
+                throw new Error(`Failed to create link: ${response.status}`);
             }
         } catch (error) {
             console.error('Error creating link:', error);
@@ -166,7 +187,7 @@ const LinksWrapper: FC = () => {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    ...(token && { 'Authorization': `Bearer ${token}` })
                 },
                 body: JSON.stringify(updates),
             });
@@ -233,7 +254,7 @@ const LinksWrapper: FC = () => {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    ...(token && { 'Authorization': `Bearer ${token}` })
                 },
                 body: JSON.stringify({
                     links: reorderedLinks.map(link => ({ id: link.id, order: link.order }))
@@ -257,7 +278,7 @@ const LinksWrapper: FC = () => {
 
     if (authLoading) {
         return (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
         );
@@ -291,12 +312,59 @@ const LinksWrapper: FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading your data...</p>
+                </div>
             </div>
         );
     }
 
+    // Ak používateľ nemá page
+    if (!currentPage) {
+        return (
+            <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">Manage Links</h1>
+                        <p className="text-muted-foreground">Create your page to start adding links</p>
+                    </div>
+                </div>
+
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                        <div className="rounded-full bg-muted p-4 mb-4">
+                            <Plus className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No page yet</h3>
+                        <p className="text-muted-foreground mb-4 text-center">
+                            Create your first page to start sharing your links with the world
+                        </p>
+                        <Button 
+                            onClick={createPage} 
+                            disabled={isCreatingPage}
+                            className="gap-2"
+                        >
+                            {isCreatingPage ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Creating...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="w-4 h-4" />
+                                    Create Page
+                                </>
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    // Ak používateľ má page
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-8">
