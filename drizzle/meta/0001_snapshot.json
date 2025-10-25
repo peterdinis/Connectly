@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e3ad443c-53c3-4ff1-8157-5eb9511d96ae",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "48df058e-8b6e-46eb-aa02-48a1b4747088",
+  "prevId": "e3ad443c-53c3-4ff1-8157-5eb9511d96ae",
   "tables": {
     "links": {
       "name": "links",
@@ -94,7 +94,7 @@
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "title": {
@@ -160,21 +160,7 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {
-        "pages_user_id_users_id_fk": {
-          "name": "pages_user_id_users_id_fk",
-          "tableFrom": "pages",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
