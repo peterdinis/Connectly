@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useState, useRef, useEffect, useOptimistic } from 'react';
+import { FC, useState, useRef, useEffect, useOptimistic, startTransition } from 'react';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import { Button } from '@/components/ui/button';
@@ -95,7 +95,9 @@ const LinksWrapper: FC = () => {
 
     // Synchronizácia serverLinks s optimisticLinks
     useEffect(() => {
-        setOptimisticLinks(serverLinks);
+        startTransition(() => {
+            setOptimisticLinks(serverLinks);
+        });
     }, [serverLinks, setOptimisticLinks]);
 
     const createPage = async () => {
@@ -175,7 +177,9 @@ const LinksWrapper: FC = () => {
                 const result = await response.json();
                 
                 // Optimistic update s novým linkom
-                setOptimisticLinks([...optimisticLinks, result.link]);
+                startTransition(() => {
+                    setOptimisticLinks([...optimisticLinks, result.link]);
+                });
                 
                 toast({
                     title: 'Link created',
@@ -207,7 +211,10 @@ const LinksWrapper: FC = () => {
             const updatedLinks = optimisticLinks.map((link: Link) => 
                 link.id === id ? { ...link, ...updates } : link
             );
-            setOptimisticLinks(updatedLinks);
+            
+            startTransition(() => {
+                setOptimisticLinks(updatedLinks);
+            });
 
             const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
@@ -243,7 +250,10 @@ const LinksWrapper: FC = () => {
         try {
             // Optimistic update
             const updatedLinks = optimisticLinks.filter((link: Link) => link.id !== id);
-            setOptimisticLinks(updatedLinks);
+            
+            startTransition(() => {
+                setOptimisticLinks(updatedLinks);
+            });
 
             const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
@@ -282,7 +292,9 @@ const LinksWrapper: FC = () => {
         }));
         
         // Optimistic update
-        setOptimisticLinks(reorderedLinks);
+        startTransition(() => {
+            setOptimisticLinks(reorderedLinks);
+        });
 
         try {
             const token = await getTokenRef.current();
