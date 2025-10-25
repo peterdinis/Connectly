@@ -4,6 +4,8 @@ import type React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
+import { Toaster } from '@/components/ui/toaster';
+import ScrollToTop from '@/components/shared/ScrollToTop';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -22,6 +24,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className="flex-1 overflow-y-auto"
                     >
                         {children}
+                        <Toaster />
+                        <ScrollToTop behavior='smooth' />
                     </motion.main>
                 </AnimatePresence>
             </div>

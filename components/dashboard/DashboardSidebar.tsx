@@ -23,10 +23,6 @@ export function DashboardSidebar() {
     const router = useRouter();
     const { user } = useKindeBrowserClient();
 
-    const handleLogout = () => {
-        // TODO
-    };
-
     return (
         <motion.div
             initial={{ x: -20, opacity: 0 }}
@@ -89,7 +85,7 @@ export function DashboardSidebar() {
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-3"
-                        onClick={() => router.push('/profile')}
+                        onClick={() => router.push('/dashboard/profile')}
                     >
                         <Eye className="h-5 w-5" />
                         Preview Page
@@ -99,7 +95,6 @@ export function DashboardSidebar() {
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-3 text-destructive hover:text-destructive"
-                        onClick={handleLogout}
                     >
                         <LogoutLink>
                             <LogOut className="h-5 w-5" />
