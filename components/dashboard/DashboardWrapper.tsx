@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ export default function DashboardPage() {
         topLink: null as { title: string; clicks: number } | null,
         recentViews: [] as { date: string; views: number }[],
     });
+
     const [recentLinks, setRecentLinks] = useState<any[]>([]);
 
     const statCards = [
