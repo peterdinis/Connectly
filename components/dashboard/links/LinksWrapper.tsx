@@ -10,7 +10,7 @@ import { Plus, Trash2, GripVertical, LogIn, ExternalLink } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { EmojiPicker } from '@/components/shared/EmojiPicker';
 import { useToast } from '@/hooks/useToast';
-import { Link } from '@/types/ApplicationTypes';
+import { Link, Page } from '@/types/ApplicationTypes';
 import { nanoid } from 'nanoid';
 import useSWR, { mutate } from 'swr';
 import { useKindeBrowserClient, LoginLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs';

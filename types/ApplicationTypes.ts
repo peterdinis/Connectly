@@ -3,8 +3,21 @@ export interface Link {
     title: string;
     url: string;
     icon?: string;
+    pageId: string;
     isActive: boolean;
     order: number;
+}
+
+export interface Page {
+    id: string;
+    userId: string;
+    title: string;
+    slug: string;
+    description: string;
+    theme: string;
+    isPublished: number;
+    createdAt: string;
+    updatedAt: string; 
 }
 
 export interface Profile {

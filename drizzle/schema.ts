@@ -17,11 +17,11 @@ export const pages = sqliteTable('pages', {
     id: text('id').primaryKey(),
     userId: text('user_id')
         .notNull()
-        .references(() => users.id, { onDelete: 'cascade' }), // Ak user zmaže účet, zmažú sa aj jeho pages
-    title: text('title').notNull(), // napr. "Main Page", "Portfolio", ...
-    slug: text('slug').unique().notNull(), // unikátna URL (napr. "janedoe" alebo "my-links")
+        .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    slug: text('slug').unique().notNull(),
     description: text('description'),
-    theme: text('theme').default('default'), // napr. 'dark', 'light', 'custom'
+    theme: text('theme').default('default'), 
     isPublished: integer('is_published').notNull().default(0),
     createdAt: text('created_at')
         .notNull()
