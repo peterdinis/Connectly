@@ -1,20 +1,20 @@
 {
-  "version": "7",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1761306179896,
-      "tag": "0000_superb_ultron",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1761401773812,
-      "tag": "0001_flippant_roxanne_simpson",
-      "breakpoints": true
-    }
-  ]
+    "version": "7",
+    "dialect": "sqlite",
+    "entries": [
+        {
+            "idx": 0,
+            "version": "6",
+            "when": 1761306179896,
+            "tag": "0000_superb_ultron",
+            "breakpoints": true
+        },
+        {
+            "idx": 1,
+            "version": "6",
+            "when": 1761401773812,
+            "tag": "0001_flippant_roxanne_simpson",
+            "breakpoints": true
+        }
+    ]
 }

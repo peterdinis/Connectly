@@ -2,13 +2,7 @@
 
 import { FC, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { motion } from 'framer-motion';
@@ -163,13 +157,19 @@ const DesignWrapper: FC = () => {
                                     <div className="space-y-3">
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="rounded" id="button-rounded" />
-                                            <Label htmlFor="button-rounded" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="button-rounded"
+                                                className="cursor-pointer"
+                                            >
                                                 Rounded
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="square" id="button-square" />
-                                            <Label htmlFor="button-square" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="button-square"
+                                                className="cursor-pointer"
+                                            >
                                                 Square
                                             </Label>
                                         </div>
@@ -233,7 +233,9 @@ const DesignWrapper: FC = () => {
                     <Card>
                         <CardHeader>
                             <CardTitle>Background Style</CardTitle>
-                            <CardDescription>Choose how the background is displayed</CardDescription>
+                            <CardDescription>
+                                Choose how the background is displayed
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <RadioGroup
@@ -288,19 +290,28 @@ const DesignWrapper: FC = () => {
                                     <div className="space-y-3">
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="compact" id="spacing-compact" />
-                                            <Label htmlFor="spacing-compact" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="spacing-compact"
+                                                className="cursor-pointer"
+                                            >
                                                 Compact
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="normal" id="spacing-normal" />
-                                            <Label htmlFor="spacing-normal" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="spacing-normal"
+                                                className="cursor-pointer"
+                                            >
                                                 Normal
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="relaxed" id="spacing-relaxed" />
-                                            <Label htmlFor="spacing-relaxed" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="spacing-relaxed"
+                                                className="cursor-pointer"
+                                            >
                                                 Relaxed
                                             </Label>
                                         </div>
@@ -333,7 +344,10 @@ const DesignWrapper: FC = () => {
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="subtle" id="border-subtle" />
-                                            <Label htmlFor="border-subtle" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="border-subtle"
+                                                className="cursor-pointer"
+                                            >
                                                 Subtle
                                             </Label>
                                         </div>
@@ -417,19 +431,28 @@ const DesignWrapper: FC = () => {
                                     <div className="space-y-3">
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="circle" id="avatar-circle" />
-                                            <Label htmlFor="avatar-circle" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="avatar-circle"
+                                                className="cursor-pointer"
+                                            >
                                                 Circle
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="rounded" id="avatar-rounded" />
-                                            <Label htmlFor="avatar-rounded" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="avatar-rounded"
+                                                className="cursor-pointer"
+                                            >
                                                 Rounded
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="square" id="avatar-square" />
-                                            <Label htmlFor="avatar-square" className="cursor-pointer">
+                                            <Label
+                                                htmlFor="avatar-square"
+                                                className="cursor-pointer"
+                                            >
                                                 Square
                                             </Label>
                                         </div>

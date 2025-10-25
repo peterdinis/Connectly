@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                         {children}
                         <Toaster />
-                        <ScrollToTop behavior='smooth' />
+                        <ScrollToTop behavior="smooth" />
                     </motion.main>
                 </AnimatePresence>
             </div>
