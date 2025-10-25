@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useState, useRef, useEffect } from 'react';
+import { FC, useState, useRef, useEffect, useOptimistic } from 'react';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { useKindeBrowserClient, LoginLink, RegisterLink } from '@kinde-oss/kinde
 
 const LinksWrapper: FC = () => {
     const [isCreatingPage, setIsCreatingPage] = useState(false);
+    const [isAddingLink, setIsAddingLink] = useState(false);
     const { toast } = useToast();
     const getTokenRef = useRef<(() => Promise<string | null> | string | null) | null>(null);
     
@@ -56,7 +57,7 @@ const LinksWrapper: FC = () => {
         return data.data;
     };
 
-        // Auth setup - volá sa iba raz
+    // Auth setup - volá sa iba raz
     const { data: authSetup } = useSWRImmutable(
         isAuthenticated ? '/api/auth/setup' : null,
         fetcher
@@ -69,22 +70,33 @@ const LinksWrapper: FC = () => {
         {
             revalidateOnFocus: false,
             revalidateOnReconnect: false,
-            dedupingInterval: 60000, // Cache na 60 sekúnd
+            dedupingInterval: 60000,
         }
     );
 
     const currentPage = pages?.[0] || null;
 
     // SWR pre links - používame iba pageId v kľúči
-    const { data: links = [], mutate: mutateLinks } = useSWR(
+    const { data: serverLinks = [], mutate: mutateLinks } = useSWR(
         currentPage ? `/api/links?pageId=${currentPage.id}` : null,
         fetcher,
         {
             revalidateOnFocus: false,
             revalidateOnReconnect: false,
-            dedupingInterval: 60000, // Cache na 60 sekúnd
+            dedupingInterval: 60000,
         }
     );
+
+    // useOptimistic pre links
+    const [optimisticLinks, setOptimisticLinks] = useOptimistic(
+        serverLinks,
+        (currentLinks: Link[], updatedLinks: Link[]) => updatedLinks
+    );
+
+    // Synchronizácia serverLinks s optimisticLinks
+    useEffect(() => {
+        setOptimisticLinks(serverLinks);
+    }, [serverLinks, setOptimisticLinks]);
 
     const createPage = async () => {
         if (!user || !getTokenRef.current) return;
@@ -115,7 +127,6 @@ const LinksWrapper: FC = () => {
                 throw new Error(`Failed to create page: ${response.status} ${errorText}`);
             }
 
-            // Revalidate pages
             mutatePages();
             
             toast({
@@ -138,12 +149,14 @@ const LinksWrapper: FC = () => {
     const addLink = async () => {
         if (!currentPage || !user || !getTokenRef.current) return;
 
+        setIsAddingLink(true);
+
         const newLink: Omit<Link, 'id' | 'createdAt'> = {
             pageId: currentPage.id,
             title: 'New Link',
             url: 'https://example.com',
             isActive: true,
-            order: links.length,
+            order: optimisticLinks.length,
             icon: '🔗',
         };
 
@@ -160,23 +173,29 @@ const LinksWrapper: FC = () => {
 
             if (response.ok) {
                 const result = await response.json();
-                // Optimistic update
-                mutateLinks([...links, result.link], false);
+                
+                // Optimistic update s novým linkom
+                setOptimisticLinks([...optimisticLinks, result.link]);
                 
                 toast({
                     title: 'Link created',
                     description: 'Your new link has been added.',
                 });
             } else {
-                throw new Error(`Failed to create link: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`Failed to create link: ${response.status} ${errorText}`);
             }
         } catch (error) {
             console.error('Error creating link:', error);
+            // Revert optimistic update
+            mutateLinks();
             toast({
                 title: 'Error',
                 description: 'Failed to create link',
                 variant: 'destructive',
             });
+        } finally {
+            setIsAddingLink(false);
         }
     };
 
@@ -185,10 +204,10 @@ const LinksWrapper: FC = () => {
 
         try {
             // Optimistic update
-            const updatedLinks = links.map((link: Link) => 
+            const updatedLinks = optimisticLinks.map((link: Link) => 
                 link.id === id ? { ...link, ...updates } : link
             );
-            mutateLinks(updatedLinks, false);
+            setOptimisticLinks(updatedLinks);
 
             const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
@@ -203,6 +222,9 @@ const LinksWrapper: FC = () => {
             if (!response.ok) {
                 throw new Error('Failed to update link');
             }
+
+            // Revalidate to ensure data consistency
+            mutateLinks();
         } catch (error) {
             console.error('Error updating link:', error);
             // Revert on error
@@ -220,8 +242,8 @@ const LinksWrapper: FC = () => {
 
         try {
             // Optimistic update
-            const updatedLinks = links.filter((link: Link) => link.id !== id);
-            mutateLinks(updatedLinks, false);
+            const updatedLinks = optimisticLinks.filter((link: Link) => link.id !== id);
+            setOptimisticLinks(updatedLinks);
 
             const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
@@ -260,7 +282,7 @@ const LinksWrapper: FC = () => {
         }));
         
         // Optimistic update
-        mutateLinks(reorderedLinks, false);
+        setOptimisticLinks(reorderedLinks);
 
         try {
             const token = await getTokenRef.current();
@@ -413,14 +435,27 @@ const LinksWrapper: FC = () => {
                             View Live
                         </Button>
                     )}
-                    <Button onClick={addLink} className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Add Link
+                    <Button 
+                        onClick={addLink} 
+                        disabled={isAddingLink}
+                        className="gap-2"
+                    >
+                        {isAddingLink ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Adding...
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" />
+                                Add Link
+                            </>
+                        )}
                     </Button>
                 </div>
             </div>
 
-            {links.length === 0 ? (
+            {optimisticLinks.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-16">
                         <div className="rounded-full bg-muted p-4 mb-4">
@@ -430,20 +465,33 @@ const LinksWrapper: FC = () => {
                         <p className="text-muted-foreground mb-4">
                             Get started by creating your first link
                         </p>
-                        <Button onClick={addLink} className="gap-2">
-                            <Plus className="w-4 h-4" />
-                            Create Link
+                        <Button 
+                            onClick={addLink} 
+                            disabled={isAddingLink}
+                            className="gap-2"
+                        >
+                            {isAddingLink ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Adding...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="w-4 h-4" />
+                                    Create Link
+                                </>
+                            )}
                         </Button>
                     </CardContent>
                 </Card>
             ) : (
                 <Reorder.Group
                     axis="y"
-                    values={links}
+                    values={optimisticLinks}
                     onReorder={handleReorder}
                     className="space-y-4"
                 >
-                    {links.map((link: Link) => (
+                    {optimisticLinks.map((link: Link) => (
                         <Reorder.Item key={link.id} value={link}>
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
