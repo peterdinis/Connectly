@@ -19,7 +19,6 @@ const LinksWrapper: FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState<Page | null>(null);
     const [isCreatingPage, setIsCreatingPage] = useState(false);
-    const [hasLoaded, setHasLoaded] = useState(false); // Nový state na prevenciu infinite loop
     const { toast } = useToast();
     
     // Kinde authentication
@@ -30,10 +29,12 @@ const LinksWrapper: FC = () => {
         getToken 
     } = useKindeBrowserClient();
 
-    // Načítať page a linky iba raz pri načítaní
+    // Načítať page a linky iba raz pri zmene usera
     useEffect(() => {
+        let isMounted = true;
+
         const loadUserData = async () => {
-            if (!isAuthenticated || !user || hasLoaded) {
+            if (!isAuthenticated || !user?.id) {
                 return;
             }
 
@@ -54,7 +55,7 @@ const LinksWrapper: FC = () => {
                     const pagesData = await pagesResponse.json();
                     const page = pagesData.data?.[0] || null;
                     
-                    if (page) {
+                    if (page && isMounted) {
                         setCurrentPage(page);
                         
                         // Načítať linky pre túto stránku
@@ -66,28 +67,34 @@ const LinksWrapper: FC = () => {
                         
                         if (linksResponse.ok) {
                             const linksData = await linksResponse.json();
-                            setLinks(linksData.data || []);
-                        } else if (linksResponse.status === 404) {
-                            // Ak endpoint neexistuje, nastavíme prázdne linky
-                            setLinks([]);
+                            if (isMounted) {
+                                setLinks(linksData.data || []);
+                            }
                         }
                     }
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
-                toast({
-                    title: 'Error',
-                    description: 'Failed to load your data',
-                    variant: 'destructive',
-                });
+                if (isMounted) {
+                    toast({
+                        title: 'Error',
+                        description: 'Failed to load your data',
+                        variant: 'destructive',
+                    });
+                }
             } finally {
-                setIsLoading(false);
-                setHasLoaded(true); // Označíme, že sme už načítali
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         };
 
         loadUserData();
-    }, [isAuthenticated, user, toast, getToken, hasLoaded]); // Pridané hasLoaded do dependency array
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated, user?.id, toast, getToken]); // Odstránené loadPages a loadLinks
 
     const createPage = async () => {
         if (!user) return;
@@ -120,7 +127,6 @@ const LinksWrapper: FC = () => {
 
             const result = await response.json();
             setCurrentPage(result.page);
-            setHasLoaded(false); // Resetujeme, aby sa znova načítali linky
             
             toast({
                 title: 'Page created',
