@@ -52,9 +52,7 @@ export function DashboardSidebar() {
                 transition={{ delay: 0.3 }}
                 className="px-6 py-4 border-b"
             >
-                <p className="text-sm font-medium">
-                    {user?.email!}
-                </p>
+                <p className="text-sm font-medium">{user?.email!}</p>
             </motion.div>
 
             <nav className="flex-1 space-y-1 px-3 py-4">
