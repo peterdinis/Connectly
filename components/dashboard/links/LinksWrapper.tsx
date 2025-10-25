@@ -19,6 +19,7 @@ const LinksWrapper: FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState<Page | null>(null);
     const [isCreatingPage, setIsCreatingPage] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false); // Nový state na prevenciu infinite loop
     const { toast } = useToast();
     
     // Kinde authentication
@@ -29,10 +30,10 @@ const LinksWrapper: FC = () => {
         getToken 
     } = useKindeBrowserClient();
 
-    // Načítať page a linky iba ak používateľ existuje
+    // Načítať page a linky iba raz pri načítaní
     useEffect(() => {
         const loadUserData = async () => {
-            if (!isAuthenticated || !user) {
+            if (!isAuthenticated || !user || hasLoaded) {
                 return;
             }
 
@@ -66,6 +67,9 @@ const LinksWrapper: FC = () => {
                         if (linksResponse.ok) {
                             const linksData = await linksResponse.json();
                             setLinks(linksData.data || []);
+                        } else if (linksResponse.status === 404) {
+                            // Ak endpoint neexistuje, nastavíme prázdne linky
+                            setLinks([]);
                         }
                     }
                 }
@@ -78,13 +82,12 @@ const LinksWrapper: FC = () => {
                 });
             } finally {
                 setIsLoading(false);
+                setHasLoaded(true); // Označíme, že sme už načítali
             }
         };
 
-        if (isAuthenticated && user) {
-            loadUserData();
-        }
-    }, [isAuthenticated, user, toast, getToken]);
+        loadUserData();
+    }, [isAuthenticated, user, toast, getToken, hasLoaded]); // Pridané hasLoaded do dependency array
 
     const createPage = async () => {
         if (!user) return;
@@ -117,6 +120,7 @@ const LinksWrapper: FC = () => {
 
             const result = await response.json();
             setCurrentPage(result.page);
+            setHasLoaded(false); // Resetujeme, aby sa znova načítali linky
             
             toast({
                 title: 'Page created',
