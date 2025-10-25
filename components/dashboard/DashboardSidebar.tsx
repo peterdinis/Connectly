@@ -8,11 +8,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ModeToggle } from '../shared/ModeToggle';
 import { UrlObject } from 'url';
+import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs';
+import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs';
 
 const navigation = [
     { name: 'Overview', href: '/dashboard', icon: Home },
     { name: 'Links', href: '/dashboard/links', icon: LinkIcon },
-    { name: 'Profile', href: '/dashboard/profile', icon: User },
     { name: 'Design', href: '/dashboard/design', icon: Palette },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 ];
@@ -20,6 +21,7 @@ const navigation = [
 export function DashboardSidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const { user } = useKindeBrowserClient();
 
     const handleLogout = () => {
         // TODO
@@ -50,8 +52,9 @@ export function DashboardSidebar() {
                 transition={{ delay: 0.3 }}
                 className="px-6 py-4 border-b"
             >
-                <p className="text-sm font-medium">ABC</p>
-                <p className="text-xs text-muted-foreground">DEF</p>
+                <p className="text-sm font-medium">
+                    {user?.email!}
+                </p>
             </motion.div>
 
             <nav className="flex-1 space-y-1 px-3 py-4">
@@ -100,8 +103,10 @@ export function DashboardSidebar() {
                         className="w-full justify-start gap-3 text-destructive hover:text-destructive"
                         onClick={handleLogout}
                     >
-                        <LogOut className="h-5 w-5" />
-                        Log out
+                        <LogoutLink>
+                            <LogOut className="h-5 w-5" />
+                            Log out
+                        </LogoutLink>
                     </Button>
                 </motion.div>
             </div>
