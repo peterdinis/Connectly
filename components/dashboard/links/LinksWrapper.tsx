@@ -6,58 +6,288 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, LogIn, ExternalLink } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { EmojiPicker } from '@/components/shared/EmojiPicker';
 import { useToast } from '@/hooks/useToast';
 import { Link } from '@/types/ApplicationTypes';
+import { nanoid } from 'nanoid';
+import useSWR, { mutate } from 'swr';
+import { useKindeBrowserClient, LoginLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const LinksWrapper: FC = () => {
     const [links, setLinks] = useState<Link[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState<Page | null>(null);
     const { toast } = useToast();
+    
+    // Kinde authentication
+    const { 
+        user, 
+        isAuthenticated, 
+        isLoading: authLoading,
+        getToken 
+    } = useKindeBrowserClient();
 
+    // Fetch user's pages
+    const { data: pagesData, error: pagesError } = useSWR(
+        isAuthenticated && user ? `/api/pages?userId=${user.id}` : null,
+        fetcher
+    );
+
+    // Create or get default page
     useEffect(() => {
-        setIsLoading(false);
-    }, []);
+        const initializePage = async () => {
+            if (!isAuthenticated || !user || !pagesData) return;
 
-    const addLink = () => {
-        const newLink: Link = {
-            id: Date.now().toString(),
+            setIsLoading(true);
+
+            try {
+                let page = pagesData.data?.[0];
+
+                // If no page exists, create one
+                if (!page) {
+                    const token = await getToken();
+                    const newPageData = {
+                        userId: user.id,
+                        title: `${user.given_name || user.family_name || user.email}'s Links`,
+                        slug: nanoid(10),
+                        description: 'My links page',
+                        isPublished: true,
+                    };
+
+                    const response = await fetch('/api/pages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(newPageData),
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        page = result.page;
+                        
+                        // Refresh pages data
+                        mutate(`/api/pages?userId=${user.id}`);
+                        
+                        toast({
+                            title: 'Page created',
+                            description: 'Your page has been created successfully.',
+                        });
+                    } else {
+                        throw new Error('Failed to create page');
+                    }
+                }
+
+                setCurrentPage(page);
+                
+                // Load links for this page
+                if (page) {
+                    const token = await getToken();
+                    const linksResponse = await fetch(`/api/links?pageId=${page.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (linksResponse.ok) {
+                        const linksData = await linksResponse.json();
+                        setLinks(linksData.data || []);
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                toast({
+                    title: 'Error',
+                    description: 'Failed to initialize page',
+                    variant: 'destructive',
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializePage();
+    }, [isAuthenticated, user, pagesData, toast, getToken]);
+
+    const addLink = async () => {
+        if (!currentPage || !user) return;
+
+        const newLink: Omit<Link, 'id' | 'createdAt'> = {
+            pageId: currentPage.id,
             title: 'New Link',
             url: 'https://example.com',
             isActive: true,
             order: links.length,
+            icon: '🔗',
         };
-        const updatedLinks = [...links, newLink];
-        setLinks(updatedLinks);
-        toast({
-            title: 'Link created',
-            description: 'Your new link has been added.',
-        });
+
+        try {
+            const token = await getToken();
+            const response = await fetch('/api/links', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newLink),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const updatedLinks = [...links, result.link];
+                setLinks(updatedLinks);
+                
+                toast({
+                    title: 'Link created',
+                    description: 'Your new link has been added.',
+                });
+            } else {
+                throw new Error('Failed to create link');
+            }
+        } catch (error) {
+            console.error('Error creating link:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to create link',
+                variant: 'destructive',
+            });
+        }
     };
 
-    const updateLink = (id: string, updates: Partial<Link>) => {
-        const updatedLinks = links.map((link) => (link.id === id ? { ...link, ...updates } : link));
-        setLinks(updatedLinks);
+    const updateLink = async (id: string, updates: Partial<Link>) => {
+        try {
+            const token = await getToken();
+            const response = await fetch(`/api/links/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates),
+            });
+
+            if (response.ok) {
+                const updatedLinks = links.map((link) => 
+                    link.id === id ? { ...link, ...updates } : link
+                );
+                setLinks(updatedLinks);
+            } else {
+                throw new Error('Failed to update link');
+            }
+        } catch (error) {
+            console.error('Error updating link:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update link',
+                variant: 'destructive',
+            });
+        }
     };
 
-    const deleteLink = (id: string) => {
-        const updatedLinks = links.filter((link) => link.id !== id);
-        setLinks(updatedLinks);
-        toast({
-            title: 'Link deleted',
-            description: 'The link has been removed.',
-        });
+    const deleteLink = async (id: string) => {
+        try {
+            const token = await getToken();
+            const response = await fetch(`/api/links/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const updatedLinks = links.filter((link) => link.id !== id);
+                setLinks(updatedLinks);
+                toast({
+                    title: 'Link deleted',
+                    description: 'The link has been removed.',
+                });
+            } else {
+                throw new Error('Failed to delete link');
+            }
+        } catch (error) {
+            console.error('Error deleting link:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to delete link',
+                variant: 'destructive',
+            });
+        }
     };
 
-    const handleReorder = (newLinks: Link[]) => {
+    const handleReorder = async (newLinks: Link[]) => {
         const reorderedLinks = newLinks.map((link, idx) => ({
             ...link,
             order: idx,
         }));
         setLinks(reorderedLinks);
+
+        // Update order in database
+        try {
+            const token = await getToken();
+            await fetch('/api/links/reorder', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    links: reorderedLinks.map(link => ({ id: link.id, order: link.order }))
+                }),
+            });
+        } catch (error) {
+            console.error('Error reordering links:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to save link order',
+                variant: 'destructive',
+            });
+        }
     };
+
+    const viewLivePage = () => {
+        if (currentPage) {
+            window.open(`/${currentPage.slug}`, '_blank');
+        }
+    };
+
+    if (authLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Card className="w-full max-w-md">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <div className="rounded-full bg-muted p-4 mb-6">
+                            <LogIn className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 text-center">Sign in to manage your links</h3>
+                        <p className="text-muted-foreground mb-6 text-center">
+                            Please sign in to create and manage your link page
+                        </p>
+                        <div className="flex gap-3">
+                            <LoginLink>
+                                <Button>Sign In</Button>
+                            </LoginLink>
+                            <RegisterLink>
+                                <Button variant="outline">Sign Up</Button>
+                            </RegisterLink>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -73,11 +303,37 @@ const LinksWrapper: FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Manage Links</h1>
                     <p className="text-muted-foreground">Create and organize your links</p>
+                    {currentPage && (
+                        <div className="flex items-center gap-3 mt-2">
+                            <span className="text-sm text-muted-foreground">
+                                Page: {currentPage.title}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                                currentPage.isPublished 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                            }`}>
+                                {currentPage.isPublished ? 'Published' : 'Draft'}
+                            </span>
+                        </div>
+                    )}
                 </div>
-                <Button onClick={addLink} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Link
-                </Button>
+                <div className="flex items-center gap-3">
+                    {currentPage && (
+                        <Button 
+                            variant="outline" 
+                            onClick={viewLivePage}
+                            className="gap-2"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            View Live
+                        </Button>
+                    )}
+                    <Button onClick={addLink} className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add Link
+                    </Button>
+                </div>
             </div>
 
             {links.length === 0 ? (

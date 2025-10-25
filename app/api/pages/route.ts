@@ -1,73 +1,85 @@
 import { NextResponse } from 'next/server';
-import { eq, like, desc, sql, and } from 'drizzle-orm';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
+import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/drizzle/db';
-import { pages } from '@/drizzle/schema';
-import { createPageSchema } from '@/schemas/pageSchema';
+import { links, pages } from '@/drizzle/schema';
 
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-    const search = searchParams.get('search') ?? '';
-    const page = Number(searchParams.get('page') ?? 1);
-    const limit = Number(searchParams.get('limit') ?? 10);
-    const offset = (page - 1) * limit;
+    try {
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
 
-    if (!userId) {
-        return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const pageId = searchParams.get('pageId');
+
+        if (!pageId) {
+            return NextResponse.json({ error: 'Missing pageId' }, { status: 400 });
+        }
+
+        // Verify that the page belongs to the user
+        const userPage = await db
+            .select()
+            .from(pages)
+            .where(and(eq(pages.id, pageId), eq(pages.userId, user.id)))
+            .limit(1);
+
+        if (userPage.length === 0) {
+            return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+        }
+
+        const result = await db
+            .select()
+            .from(links)
+            .where(eq(links.pageId, pageId))
+            .orderBy(desc(links.order));
+
+        return NextResponse.json({ data: result });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to fetch links' }, { status: 500 });
     }
-
-    const query = db
-        .select()
-        .from(pages)
-        .where(
-            search
-                ? and(eq(pages.userId, userId), like(pages.title, `%${search}%`))
-                : eq(pages.userId, userId),
-        )
-        .orderBy(desc(pages.createdAt))
-        .limit(limit)
-        .offset(offset);
-
-    const result = await query;
-    const total = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(pages)
-        .where(eq(pages.userId, userId));
-
-    return NextResponse.json({
-        data: result,
-        pagination: {
-            page,
-            limit,
-            total: total[0]?.count ?? 0,
-            totalPages: Math.ceil((total[0]?.count ?? 0) / limit),
-        },
-    });
 }
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-        const parsed = createPageSchema.parse(body);
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
 
-        const newPage = {
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await req.json();
+        
+        // Verify that the page belongs to the user
+        const userPage = await db
+            .select()
+            .from(pages)
+            .where(and(eq(pages.id, body.pageId), eq(pages.userId, user.id)))
+            .limit(1);
+
+        if (userPage.length === 0) {
+            return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+        }
+
+        const newLink = {
             id: nanoid(),
-            userId: parsed.userId,
-            title: parsed.title,
-            slug: parsed.slug,
-            description: parsed.description ?? '',
-            theme: parsed.theme ?? 'default',
-            isPublished: parsed.isPublished ? 1 : 0,
+            pageId: body.pageId,
+            title: body.title,
+            url: body.url,
+            icon: body.icon || '🔗',
+            isActive: body.isActive ? 1 : 0,
+            order: body.order || 0,
         };
 
-        await db.insert(pages).values(newPage);
+        await db.insert(links).values(newLink);
 
-        return NextResponse.json({ success: true, page: newPage }, { status: 201 });
-    } catch (err) {
-        if (err instanceof Error) {
-            return NextResponse.json({ error: err.message }, { status: 400 });
-        }
-        return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        return NextResponse.json({ success: true, link: newLink }, { status: 201 });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to create link' }, { status: 500 });
     }
 }
