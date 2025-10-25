@@ -1,6 +1,7 @@
 'use client';
 
-import { FC, useEffect, useState } from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
+import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,11 +16,9 @@ import { nanoid } from 'nanoid';
 import { useKindeBrowserClient, LoginLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs';
 
 const LinksWrapper: FC = () => {
-    const [links, setLinks] = useState<Link[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [currentPage, setCurrentPage] = useState<Page | null>(null);
     const [isCreatingPage, setIsCreatingPage] = useState(false);
     const { toast } = useToast();
+    const getTokenRef = useRef<(() => Promise<string | null> | string | null) | null>(null);
     
     // Kinde authentication
     const { 
@@ -29,80 +28,64 @@ const LinksWrapper: FC = () => {
         getToken 
     } = useKindeBrowserClient();
 
-    // Načítať page a linky iba raz pri zmene usera
+    // Uložiť getToken do ref, aby sa nemenil
     useEffect(() => {
-        let isMounted = true;
+        getTokenRef.current = getToken;
+    }, [getToken]);
 
-        const loadUserData = async () => {
-            if (!isAuthenticated || !user?.id) {
-                return;
+    // Fetcher funkcia
+    const fetcher = async (url: string) => {
+        if (!getTokenRef.current) return null;
+        
+        const tokenResult = getTokenRef.current();
+        const token = tokenResult instanceof Promise ? await tokenResult : tokenResult;
+        
+        const res = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
             }
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to fetch');
+        }
+        
+        const data = await res.json();
+        return data.data;
+    };
 
-            setIsLoading(true);
+    // SWR pre pages - používame iba userId v kľúči
+    const { data: pages, mutate: mutatePages } = useSWR(
+        isAuthenticated && user?.id ? `/api/pages?userId=${user.id}` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 60000, // Cache na 60 sekúnd
+        }
+    );
 
-            try {
-                const token = await getToken();
-                
-                // Načítať pages používateľa
-                const pagesResponse = await fetch(`/api/pages?userId=${user.id}`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token && { 'Authorization': `Bearer ${token}` })
-                    }
-                });
+    const currentPage = pages?.[0] || null;
 
-                if (pagesResponse.ok) {
-                    const pagesData = await pagesResponse.json();
-                    const page = pagesData.data?.[0] || null;
-                    
-                    if (page && isMounted) {
-                        setCurrentPage(page);
-                        
-                        // Načítať linky pre túto stránku
-                        const linksResponse = await fetch(`/api/links?pageId=${page.id}`, {
-                            headers: {
-                                ...(token && { 'Authorization': `Bearer ${token}` })
-                            }
-                        });
-                        
-                        if (linksResponse.ok) {
-                            const linksData = await linksResponse.json();
-                            if (isMounted) {
-                                setLinks(linksData.data || []);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading user data:', error);
-                if (isMounted) {
-                    toast({
-                        title: 'Error',
-                        description: 'Failed to load your data',
-                        variant: 'destructive',
-                    });
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        loadUserData();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [isAuthenticated, user?.id, toast, getToken]); // Odstránené loadPages a loadLinks
+    // SWR pre links - používame iba pageId v kľúči
+    const { data: links = [], mutate: mutateLinks } = useSWR(
+        currentPage ? `/api/links?pageId=${currentPage.id}` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 60000, // Cache na 60 sekúnd
+        }
+    );
 
     const createPage = async () => {
-        if (!user) return;
+        if (!user || !getTokenRef.current) return;
 
         setIsCreatingPage(true);
 
         try {
-            const token = await getToken();
+            const token = await getTokenRef.current();
             const newPageData = {
                 userId: user.id,
                 title: `${user.given_name || user.family_name || user.email}'s Links`,
@@ -125,8 +108,8 @@ const LinksWrapper: FC = () => {
                 throw new Error(`Failed to create page: ${response.status} ${errorText}`);
             }
 
-            const result = await response.json();
-            setCurrentPage(result.page);
+            // Revalidate pages
+            mutatePages();
             
             toast({
                 title: 'Page created',
@@ -146,7 +129,7 @@ const LinksWrapper: FC = () => {
     };
 
     const addLink = async () => {
-        if (!currentPage || !user) return;
+        if (!currentPage || !user || !getTokenRef.current) return;
 
         const newLink: Omit<Link, 'id' | 'createdAt'> = {
             pageId: currentPage.id,
@@ -158,7 +141,7 @@ const LinksWrapper: FC = () => {
         };
 
         try {
-            const token = await getToken();
+            const token = await getTokenRef.current();
             const response = await fetch('/api/links', {
                 method: 'POST',
                 headers: {
@@ -170,8 +153,8 @@ const LinksWrapper: FC = () => {
 
             if (response.ok) {
                 const result = await response.json();
-                const updatedLinks = [...links, result.link];
-                setLinks(updatedLinks);
+                // Optimistic update
+                mutateLinks([...links, result.link], false);
                 
                 toast({
                     title: 'Link created',
@@ -191,8 +174,16 @@ const LinksWrapper: FC = () => {
     };
 
     const updateLink = async (id: string, updates: Partial<Link>) => {
+        if (!getTokenRef.current) return;
+
         try {
-            const token = await getToken();
+            // Optimistic update
+            const updatedLinks = links.map((link: Link) => 
+                link.id === id ? { ...link, ...updates } : link
+            );
+            mutateLinks(updatedLinks, false);
+
+            const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
                 method: 'PATCH',
                 headers: {
@@ -202,16 +193,13 @@ const LinksWrapper: FC = () => {
                 body: JSON.stringify(updates),
             });
 
-            if (response.ok) {
-                const updatedLinks = links.map((link) => 
-                    link.id === id ? { ...link, ...updates } : link
-                );
-                setLinks(updatedLinks);
-            } else {
+            if (!response.ok) {
                 throw new Error('Failed to update link');
             }
         } catch (error) {
             console.error('Error updating link:', error);
+            // Revert on error
+            mutateLinks();
             toast({
                 title: 'Error',
                 description: 'Failed to update link',
@@ -221,8 +209,14 @@ const LinksWrapper: FC = () => {
     };
 
     const deleteLink = async (id: string) => {
+        if (!getTokenRef.current) return;
+
         try {
-            const token = await getToken();
+            // Optimistic update
+            const updatedLinks = links.filter((link: Link) => link.id !== id);
+            mutateLinks(updatedLinks, false);
+
+            const token = await getTokenRef.current();
             const response = await fetch(`/api/links/${id}`, {
                 method: 'DELETE',
                 headers: {
@@ -231,8 +225,6 @@ const LinksWrapper: FC = () => {
             });
 
             if (response.ok) {
-                const updatedLinks = links.filter((link) => link.id !== id);
-                setLinks(updatedLinks);
                 toast({
                     title: 'Link deleted',
                     description: 'The link has been removed.',
@@ -242,6 +234,8 @@ const LinksWrapper: FC = () => {
             }
         } catch (error) {
             console.error('Error deleting link:', error);
+            // Revert on error
+            mutateLinks();
             toast({
                 title: 'Error',
                 description: 'Failed to delete link',
@@ -251,15 +245,18 @@ const LinksWrapper: FC = () => {
     };
 
     const handleReorder = async (newLinks: Link[]) => {
+        if (!getTokenRef.current) return;
+
         const reorderedLinks = newLinks.map((link, idx) => ({
             ...link,
             order: idx,
         }));
-        setLinks(reorderedLinks);
+        
+        // Optimistic update
+        mutateLinks(reorderedLinks, false);
 
-        // Update order in database
         try {
-            const token = await getToken();
+            const token = await getTokenRef.current();
             await fetch('/api/links/reorder', {
                 method: 'PATCH',
                 headers: {
@@ -272,6 +269,8 @@ const LinksWrapper: FC = () => {
             });
         } catch (error) {
             console.error('Error reordering links:', error);
+            // Revert on error
+            mutateLinks();
             toast({
                 title: 'Error',
                 description: 'Failed to save link order',
@@ -320,6 +319,8 @@ const LinksWrapper: FC = () => {
         );
     }
 
+    const isLoading = !pages && !currentPage;
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -331,7 +332,6 @@ const LinksWrapper: FC = () => {
         );
     }
 
-    // Ak používateľ nemá page
     if (!currentPage) {
         return (
             <div className="p-8">
@@ -374,7 +374,6 @@ const LinksWrapper: FC = () => {
         );
     }
 
-    // Ak používateľ má page
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-8">
@@ -437,7 +436,7 @@ const LinksWrapper: FC = () => {
                     onReorder={handleReorder}
                     className="space-y-4"
                 >
-                    {links.map((link) => (
+                    {links.map((link: Link) => (
                         <Reorder.Item key={link.id} value={link}>
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
