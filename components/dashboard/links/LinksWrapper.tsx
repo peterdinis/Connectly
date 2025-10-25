@@ -2,6 +2,7 @@
 
 import { FC, useState, useRef, useEffect } from 'react';
 import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,12 @@ const LinksWrapper: FC = () => {
         const data = await res.json();
         return data.data;
     };
+
+        // Auth setup - volá sa iba raz
+    const { data: authSetup } = useSWRImmutable(
+        isAuthenticated ? '/api/auth/setup' : null,
+        fetcher
+    );
 
     // SWR pre pages - používame iba userId v kľúči
     const { data: pages, mutate: mutatePages } = useSWR(
